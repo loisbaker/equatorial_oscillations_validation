@@ -1,0 +1,7 @@
+*.dat
+*.nc
+*.cdf
+*.mat
+*.ppt
+*.png
+data/
