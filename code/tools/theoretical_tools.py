@@ -83,7 +83,7 @@ def find_predicted_freqs(nmodes,k_wavenumbers=0,lon_lims=[0,360],lat_lims=[-12,1
     # k_wavenumbers should be in deg^{-1}
     
     # Load in baroclinic wave speed maps
-    contents=sio.loadmat('../../data/WOCE/baroclinic_wave_speeds_WOCE.mat')
+    contents=sio.loadmat('../../data/WOCE/baroclinic_wave_speeds.mat')
     c1global = np.squeeze(contents['c1'])
     c2global = np.squeeze(contents['c2'])
     clat = np.squeeze(contents['lat'])
@@ -105,27 +105,39 @@ def find_predicted_freqs(nmodes,k_wavenumbers=0,lon_lims=[0,360],lat_lims=[-12,1
 
     # If only looking for zonally uniform frequency, can simplify the dispersion relation:
     if np.isscalar(k_wavenumbers):
-        if k_wavenumbers == 0:   
-            # timescale in seconds:
-            Te1 = 1/np.sqrt(beta*c1)
-            Te2 = 1/np.sqrt(beta*c2)
+        if k_wavenumbers == 0:  
+            if average_lon:
+                
+                c1 = np.nanmean(c1)
+                c2 = np.nanmean(c2)
+                
+                # timescale in seconds:
+                Te1 = 1/np.sqrt(beta*c1)
+                Te2 = 1/np.sqrt(beta*c2)
 
-            # timescale in days:
-            Te1d = Te1/24/3600
-            Te2d = Te2/24/3600
-            
-            freqbc1 = np.zeros((n.shape[0],lon_speeds.shape[0]))
-            freqbc2 = np.zeros((n.shape[0],lon_speeds.shape[0]))
+                # timescale in days:
+                Te1d = Te1/24/3600
+                Te2d = Te2/24/3600
+                
+                freqbc1 = np.sqrt(2*nvec+1)/Te1d/2/np.pi
+                freqbc2 = np.sqrt(2*nvec+1)/Te2d/2/np.pi
+            else:
+                # timescale in seconds:
+                Te1 = 1/np.sqrt(beta*c1)
+                Te2 = 1/np.sqrt(beta*c2)
 
-            for ilon in range(0,lon_freqs.shape[0]):
-                freqbc1[:,ilon] = np.sqrt(2*nvec+1)/Te1d[ilon]/2/np.pi
-                freqbc2[:,ilon] = np.sqrt(2*nvec+1)/Te2d[ilon]/2/np.pi
+                # timescale in days:
+                Te1d = Te1/24/3600
+                Te2d = Te2/24/3600
+                
+                freqbc1 = np.zeros((nvec.shape[0],lon_freqs.shape[0]))
+                freqbc2 = np.zeros((nvec.shape[0],lon_freqs.shape[0]))
 
-            if average_lon == True:
-                freqbc1 = np.nanmean(freqbc1,axis=1)
-                freqbc2 = np.nanmean(freqbc2,axis=1)
+                for ilon in range(0,lon_freqs.shape[0]):
+                    freqbc1[:,ilon] = np.sqrt(2*nvec+1)/Te1d[ilon]/2/np.pi
+                    freqbc2[:,ilon] = np.sqrt(2*nvec+1)/Te2d[ilon]/2/np.pi         
 
-            return  freqbc1, freqbc2, lon_freqs
+            return  freqbc1, freqbc2, c1, c2, lon_freqs
         else:
             print('k_wavenumbers should be 0 or a numpy array')
 
@@ -139,7 +151,6 @@ def find_predicted_freqs(nmodes,k_wavenumbers=0,lon_lims=[0,360],lat_lims=[-12,1
         # Just use zonally averaged wave speeds
         c1 = np.nanmean(c1)   
         c2 = np.nanmean(c2)   
-        print(f'c1 = {c1}m/s, c2 = {c2}m/s')
         
         # timescale in seconds:
         Te1 = 1/np.sqrt(beta*c1)
@@ -191,7 +202,7 @@ def find_predicted_freqs(nmodes,k_wavenumbers=0,lon_lims=[0,360],lat_lims=[-12,1
         # Re-dimensionalise frequency
         freqbc2 = freqbc2_nd/Te2d/2/np.pi
 
-        return  freqbc1, freqbc2, k_wavenumbers
+        return  freqbc1, freqbc2, c1, c2, k_wavenumbers
         
     
     

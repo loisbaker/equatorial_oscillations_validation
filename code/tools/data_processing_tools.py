@@ -3,6 +3,7 @@ import numpy as np
 import xarray as xr
 from numpy import pi
 from astropy.convolution import convolve
+from tqdm import tqdm
 
 
 def smooth(field,n,axis=0,mode='same'):
@@ -40,49 +41,45 @@ def smooth(field,n,axis=0,mode='same'):
         
     return field_sm
         
-def load_TAO(nyears_start=0, nyears_end=37.6, NEMO_year=False, ilats = 'default', ilons = 'default'):
+def load_TAO(NEMO_year=False, ilats = 'default', ilons = 'default'):
     
     # Load in data from moorings 
-    ds = np.squeeze(xr.load_dataset('../../data/TAO/dyn_xyt_dy_40year.cdf'))
+    ds = np.squeeze(xr.load_dataset('../../data/TAO/dyn_xyt_dy.cdf'))
     
     # make a dynamic height D with high values replaced by nans
     D = xr.where(np.abs(ds.DYN_13) > 1e10, np.nan, ds.DYN_13)
     ds['D'] = D
     
-    # Remove a dodgy value (there aren't too many)
-    ds.D[8309,5,5] = np.nan
-    
     # Let's cut the 3 westmost zonal locations - no southern hemisphere data
     ds = ds.isel({'lon':np.arange(3,11,1)})
-    ds.D[8309,5,5] = np.nan
     
-    if not NEMO_year:
-        ds = ds.isel({'time':range(int(nyears_start*366),int(nyears_end*366))})
-    else:
-        ds = ds.isel({'time':range(8198,8198+370)})
+    # Remove a dodgy value (there aren't too many)
+    ds.D[4949,5,5] = np.nan
+    
+    if NEMO_year:     
+        ds = ds.isel({'time':range(4838,4838+370)})
     
     if ilats != 'default':
         ds = ds.isel({'lat':ilats})
     if ilons != 'default':
         ds = ds.isel({'lon':ilons})
         
-        
     lat = ds.lat.values
     lon = ds.lon.values
-    
-    
-    
-    
+
     t = np.arange(0,D.shape[0],1)
     
     D = ds.D.values
-    return t, lat, lon, D, ds
+    
+    # Define the midpoints between the moorings
+    lon_TAO_midpoints = np.array([158.5,172.5,185,197.5,212.5,227.5,242.5,257.5,272.5])
+    
+    return t, lat, lon, lon_TAO_midpoints, D, ds
     
     
 def load_NEMO(daily_mean=True,lons='default',lats='default',lon_lims='default',winds=False):
     # Always work in lons between 0 and 360
-    
-    
+
     # Load in NEMO dataset
     ds = np.squeeze(xr.load_dataset('../../data/NEMO/VN206HF_4h_hdy500m.nc'))
     
@@ -97,7 +94,7 @@ def load_NEMO(daily_mean=True,lons='default',lats='default',lon_lims='default',w
     # Change lons to between 0 and 360  
     ds['nav_lon'] = xr.where(ds.nav_lon < 0, ds.nav_lon+360,ds.nav_lon)
     
-    # Set lat at equator to zero, it's nan for some reason
+    # Set lat at equator to zero, as it's nan at the moment
     ds.nav_lat[49,:] = 0
     lon_full = ds.nav_lon[50,:].values
     lat_full = ds.nav_lat[:,1].values
@@ -130,7 +127,7 @@ def load_NEMO(daily_mean=True,lons='default',lats='default',lon_lims='default',w
     lat = ds.nav_lat[:,1].values
     D = ds.D.values
     
-    if winds: # Then load in the winds too
+    if winds: # Then load in the wind stresses too
         ds_tauy = np.squeeze(xr.open_dataset('../../data/NEMO/VN206HF_4h_sometauy.nc'))
         ds_taux = np.squeeze(xr.open_dataset('../../data/NEMO/VN206HF_4h_sozotaux.nc'))
         if daily_mean:
@@ -148,7 +145,7 @@ def load_NEMO(daily_mean=True,lons='default',lats='default',lon_lims='default',w
             ds_tauy = ds_tauy_sub
        
 
-        # Deal with missing values and convert into centimetres
+        # Deal with missing values
         ds_taux['tau_x'] = xr.where(np.abs(ds_taux.tau_x) > 1e10, np.nan, ds_taux.tau_x)
         ds_tauy['tau_y'] = xr.where(np.abs(ds_tauy.tau_y) > 1e10, np.nan, ds_tauy.tau_y)
 
