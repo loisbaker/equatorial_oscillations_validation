@@ -9,11 +9,24 @@ import numpy.polynomial as poly
 
 
 def calc_meridional_modes(ys,N=6,cm=2.8):
+    """
+    Calculates the first N normalised meridional modes for the baroclinic wave speed cm at the latitudes ys
     
+    Inputs:
+    
+    ys (np.ndarray) : Latitudes at which to return the modes
+    N (int, optional) : Number of modes to calculate, defaults to 6
+    cm (float, optional) : Baroclinic wavespeed in m/s, defaults to 2.8 m/s
+    
+    Returns:
+    V_modes (np.ndarray): Modes for meridional velocity at latitudes ys
+    P_modes (np.ndarray): Modes for pressure at latitudes ys(at zonal wavenumber k=0)
+    
+    """
     # ys is where we want the modes sampled at. We define a more resolved y to actually calculate the modes.
     y = np.linspace(-15,15,100)
     
-    # Find modes according to Blaker & Bell 2021
+    # Find modes according to Blaker et al. 2021
     earth_radius = 6371000
     earth_freq = 2*pi/24/3600
     ny = y.shape[0]
@@ -46,7 +59,7 @@ def calc_meridional_modes(ys,N=6,cm=2.8):
     phi = He*np.tile(np.expand_dims(np.exp(-ym**2/4),0),[9,1])
 
     
-    # Now find pressure modes, normalise them too (different from Farrar & Durland convention)
+    # Now find pressure modes, normalise them too.
     # For the hermite functions phi_m = exp(-y^2/4)He_m, d phi_m / dy = 0.5*[m*phi_{m-1} - phi_{m+1}]
     
     P = np.zeros((8,ny))
@@ -79,11 +92,32 @@ def calc_meridional_modes(ys,N=6,cm=2.8):
         
         
 def find_predicted_freqs(nmodes,k_wavenumbers=0,lon_lims=[0,360],lat_lims=[-12,12],average_lon = True):
+    """
+    Calculates the predicted wave frequencies for the first and second baroclinic modes as per the wave dispersion relation on a beta plane.
     
-    # k_wavenumbers should be in deg^{-1}
+    Inputs:
+    
+    nmodes (int) : Number of meridional modes
+    k_wavenumbers (int==0 OR np.ndarray, optional) : zonal wavenumbers at which to calculate frequencies. Should be in deg^{-1}. Either 0 or an array containing wavenumbers. Defaults to 0. 
+    lon_lims (list, optional) : Longitude limits for baroclinic wavespeeds used. Should be a list of form [lon_min, lon_max], defaults to [0,360].
+    lat_lims (list, optional) : Latitude limits for baroclinic wavespeeds used. Should be a list of form [lat_min, lat_max], defaults to [-12,12].
+    average_lon (bool, optional) : If True, calculates frequency using a zonally averaged baroclinic wavespeed. If False, calculates at each longitude.
+    
+    If k_wavenumbers is not zero, and average_lon is False, average_lon will be changed to True.
+    
+    Returns:
+    
+    freqbc1 (np.ndarray) : frequencies of first baroclinic mode. If k_wavenumbers is not zero, has a dimension corresponding to wavenumber. If average_lon is False, has a dimension corresponding to longitude. Both options are not compatible
+    freqbc2 (np.ndarray) : frequencies of second baroclinic mode. Dimensions as for freqbc1. 
+    c1 (float or np.ndarray) : Meridionally averaged first baroclinic wave speed. Has dimensions of longitude if average_lon = False
+    c2 (float or np.ndarray) : Meridionally averaged second baroclinic wave speed. Has dimensions of longitude if average_lon = False
+    lon_freqs (np.ndarray) : Longitudes at which frequencies are found. None if average_lon = True
+    k_wavenumbers (np.ndarray) : Zonal wavenumbers at which frequencies are found. 
+    
+    """
     
     # Load in baroclinic wave speed maps
-    contents=sio.loadmat('../../data/WOCE/baroclinic_wave_speeds.mat')
+    contents=sio.loadmat('../../data/baroclinic_wave_speeds/baroclinic_wave_speeds.mat')
     c1global = np.squeeze(contents['c1'])
     c2global = np.squeeze(contents['c2'])
     clat = np.squeeze(contents['lat'])
@@ -121,6 +155,8 @@ def find_predicted_freqs(nmodes,k_wavenumbers=0,lon_lims=[0,360],lat_lims=[-12,1
                 
                 freqbc1 = np.sqrt(2*nvec+1)/Te1d/2/np.pi
                 freqbc2 = np.sqrt(2*nvec+1)/Te2d/2/np.pi
+                
+                lon_freqs = None
             else:
                 # timescale in seconds:
                 Te1 = 1/np.sqrt(beta*c1)
@@ -137,7 +173,7 @@ def find_predicted_freqs(nmodes,k_wavenumbers=0,lon_lims=[0,360],lat_lims=[-12,1
                     freqbc1[:,ilon] = np.sqrt(2*nvec+1)/Te1d[ilon]/2/np.pi
                     freqbc2[:,ilon] = np.sqrt(2*nvec+1)/Te2d[ilon]/2/np.pi         
 
-            return  freqbc1, freqbc2, c1, c2, lon_freqs
+            
         else:
             print('k_wavenumbers should be 0 or a numpy array')
 
@@ -202,7 +238,7 @@ def find_predicted_freqs(nmodes,k_wavenumbers=0,lon_lims=[0,360],lat_lims=[-12,1
         # Re-dimensionalise frequency
         freqbc2 = freqbc2_nd/Te2d/2/np.pi
 
-        return  freqbc1, freqbc2, c1, c2, k_wavenumbers
+        return freqbc1, freqbc2, c1, c2, lon_freqs, k_wavenumbers
         
     
     

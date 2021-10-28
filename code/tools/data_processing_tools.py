@@ -6,8 +6,20 @@ from astropy.convolution import convolve
 from tqdm import tqdm
 
 
-def smooth(field,n,axis=0,mode='same'):
-    ''' convolves a 1-3D field along a given axis'''
+def smooth(field,n,axis=0):
+    ''' 
+    Convolves a 1-3D field along a given axis, using astropy's convolve function (deals well with gappy data).
+    
+    Inputs:
+    
+    field (np.ndarray): input field, 1-3 dimensions
+    n (int): length of smoothing window, should be odd
+    axis (int, optional): axis to smooth along. Defaults to 0. 
+    
+    Returns:
+    
+    field_sm (np.ndarray): smoothed field
+    '''
     ndims = len(field.shape)
     if ndims == 1:
         field_sm = convolve(field,np.ones(n)/n,boundary='extend')
@@ -41,7 +53,25 @@ def smooth(field,n,axis=0,mode='same'):
         
     return field_sm
         
-def load_TAO(NEMO_year=False, ilats = 'default', ilons = 'default'):
+def load_TAO(NEMO_year=False):
+    """
+    Loads in the TAO dataset
+    
+    Inputs:
+    
+    NEMO_year (bool, optional): returns dataset corresponding to the same year as the NEMO simulation 
+                                if True, otherwise returns 26 year record. Defaults to False.
+    
+    Returns:
+    
+    t (np.ndarray) : time in days
+    lat (np.ndarray) : latitude
+    lon (np.ndarray) : longitude
+    lon_TAO_midpoints (np.ndarray) : longitude of midpoints between moorings
+    D (np.ndarray) : dynamic height
+    ds (xarray.Dataset) : full dataset containing TAO data
+    
+    """
     
     # Load in data from moorings 
     ds = np.squeeze(xr.load_dataset('../../data/TAO/dyn_xyt_dy.cdf'))
@@ -59,11 +89,6 @@ def load_TAO(NEMO_year=False, ilats = 'default', ilons = 'default'):
     if NEMO_year:     
         ds = ds.isel({'time':range(4838,4838+370)})
     
-    if ilats != 'default':
-        ds = ds.isel({'lat':ilats})
-    if ilons != 'default':
-        ds = ds.isel({'lon':ilons})
-        
     lat = ds.lat.values
     lon = ds.lon.values
 
@@ -78,8 +103,28 @@ def load_TAO(NEMO_year=False, ilats = 'default', ilons = 'default'):
     
     
 def load_NEMO(daily_mean=True,lons='default',lats='default',lon_lims='default',winds=False):
-    # Always work in lons between 0 and 360
-
+    """
+    Loads in the NEMO dataset
+    
+    Inputs:
+    
+    daily_mean (bool, optional) : returns a daily mean dataset if true, otherwise 4 hourly. Defaults to True.
+    lons (np.ndarray, optional) : longitudes at which to return data, should be between 0 and 360.
+    lats (np.ndarray, optional) : latitudes at which to return data
+    lon_lims (list, optional) : longitude limits for data (overridden by lats if specified). Given as a list [lon_min, lon_max].
+    winds (bool, optional) : If True, return datasets of wind stress data.
+    
+    Returns:
+   
+    t (np.ndarray) : time in days
+    lat (np.ndarray) : latitude
+    lon (np.ndarray) : longitude
+    D (np.ndarray) : dynamic height
+    ds (xarray.Dataset) : full dataset containing NEMO data
+    ds_taux (xarray.Dataset) : returned if winds=True, contains zonal component of wind stress
+    ds_tauy (xarray.Dataset) : returned if winds=True, contains meridional component of wind stress
+    
+    """
     # Load in NEMO dataset
     ds = np.squeeze(xr.load_dataset('../../data/NEMO/VN206HF_4h_hdy500m.nc'))
     
