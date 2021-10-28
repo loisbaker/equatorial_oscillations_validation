@@ -4,5 +4,5 @@
 *.mat
 *.ppt
 *.png
-data/
+data/post_processed
 venv/

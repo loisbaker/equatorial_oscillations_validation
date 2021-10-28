@@ -87,7 +87,7 @@ def least_squares_spectrum_t(data, t, min_period, max_period, NSR=35, reconstruc
             fitted_d = np.dot(E,amps)
             sine_coeffs = amps[0::2]
             cos_coeffs = amps[1::2]
-        power = np.sqrt((sine_coeffs**2 + cos_coeffs**2)) # by Adam's defn of normalisation
+        power = np.sqrt((sine_coeffs**2 + cos_coeffs**2)) # same definition as Blaker et al. 2021
 
 
         fitted_data = np.nan*np.ones_like(dvec)

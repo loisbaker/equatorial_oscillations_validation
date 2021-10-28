@@ -1,0 +1,15 @@
+Save TAO dynamic height data here. This can be downloaded from
+https://www.pmel.noaa.gov/tao/drupal/disdel/ as follows:
+
+1. Select TAO/TRITON (Pacific) and 'Select All Sites'
+2. Select 'Time Series'
+3. Select 'One Variable'
+4. Select 'Dyn Ht'
+5. Set date range '1993 - Jan - 1' to '2018 - Dec - 31'
+6. Set frequency 'Daily'
+7. Set 'all sites in one file'
+8. Select 'NetCDF (4-byte, CF time)
+9. Select 'Deliver' and download data. 
+10. Save in this directory (equatorial_oscillations_validation/data/TAO)
+11. Check file name is 'dyn_xyt_dy.cdf'
+

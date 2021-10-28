@@ -1,0 +1,6 @@
+Save the following NEMO data files here (equatorial_oscillations_validation/data/NEMO):
+
+VN206HF_4h_hdy500m.nc
+VN206HF_4h_sometauy.nc
+VN206HF_4h_sozotaux.nc
+

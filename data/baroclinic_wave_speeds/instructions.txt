@@ -1,0 +1,2 @@
+The file 'baroclinic_wave_speeds.mat' should be saved here (equatorial_oscillations_validation/data/baroclinic_wave_speeds)
+This contains global maps of the first and second baroclinic wavespeeds, calculated from WOCE (http://woceatlas.ucsd.edu) neutral density data 
