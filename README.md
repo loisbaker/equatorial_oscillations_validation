@@ -4,7 +4,7 @@ The code in this repository was written and used for a submitted publication:
 
 Baker, L.E., Bell, M.J., Blaker, A.T. (submitted to GRL, 2021) TAO data support the existence of large high frequency variations in cross-equatorial overturning circulation
 
-The software and data is released on Zenodo: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5636807.svg)](https://doi.org/10.5281/zenodo.5636807)
+The software and data is released on Zenodo: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5637010.svg)](https://doi.org/10.5281/zenodo.5637010)
 
 
 This code allows the comparison of high frequency (3-15 day) oscillations in dynamic height in the equatorial Pacific Ocean between observations from the TAO mooring array and a global numerical simulation. These oscillations correspond to equatorially trapped inertia-gravity and Rossby-gravity waves. 
