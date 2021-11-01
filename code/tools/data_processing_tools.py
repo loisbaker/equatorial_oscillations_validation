@@ -55,7 +55,7 @@ def smooth(field,n,axis=0):
         
 def load_TAO(NEMO_year=False):
     """
-    Loads in the TAO dataset
+    Loads in the TAO dataset, does some initial data processing
     
     Inputs:
     
@@ -104,7 +104,7 @@ def load_TAO(NEMO_year=False):
     
 def load_NEMO(daily_mean=True,lons='default',lats='default',lon_lims='default',winds=False):
     """
-    Loads in the NEMO dataset
+    Loads in the NEMO dataset, does some initial data processing
     
     Inputs:
     
@@ -112,7 +112,7 @@ def load_NEMO(daily_mean=True,lons='default',lats='default',lon_lims='default',w
     lons (np.ndarray, optional) : longitudes at which to return data, should be between 0 and 360.
     lats (np.ndarray, optional) : latitudes at which to return data
     lon_lims (list, optional) : longitude limits for data (overridden by lats if specified). Given as a list [lon_min, lon_max].
-    winds (bool, optional) : If True, return datasets of wind stress data.
+    winds (bool, optional) : If True, return equatorial wind stress data.
     
     Returns:
    
@@ -121,8 +121,8 @@ def load_NEMO(daily_mean=True,lons='default',lats='default',lon_lims='default',w
     lon (np.ndarray) : longitude
     D (np.ndarray) : dynamic height
     ds (xarray.Dataset) : full dataset containing NEMO data
-    ds_taux (xarray.Dataset) : returned if winds=True, contains zonal component of wind stress
-    ds_tauy (xarray.Dataset) : returned if winds=True, contains meridional component of wind stress
+    tau_x (np.ndarray) : returned if winds=True, contains zonal component of wind stress at equator
+    tau_y (np.ndarray) : returned if winds=True, contains meridional component of wind stress at equator
     
     """
     # Load in NEMO dataset
@@ -170,11 +170,13 @@ def load_NEMO(daily_mean=True,lons='default',lats='default',lon_lims='default',w
     t = np.arange(0,370,1)
     lon = ds.nav_lon[0,:].values
     lat = ds.nav_lat[:,1].values
+    ds = np.squeeze(ds)
     D = ds.D.values
     
-    if winds: # Then load in the wind stresses too
-        ds_tauy = np.squeeze(xr.open_dataset('../../data/NEMO/VN206HF_4h_sometauy.nc'))
-        ds_taux = np.squeeze(xr.open_dataset('../../data/NEMO/VN206HF_4h_sozotaux.nc'))
+    
+    if winds: # Then load in the wind stresses too. These have already been cropped to just include the equator.
+        ds_tauy = np.squeeze(xr.open_dataset('../../data/NEMO/VN206HF_4h_sometauy_equator.nc'))
+        ds_taux = np.squeeze(xr.open_dataset('../../data/NEMO/VN206HF_4h_sozotaux_equator.nc'))
         if daily_mean:
             ds_tauy_sub = ds_tauy.isel({'time_counter':np.arange(0,ds_tauy.time_counter.shape[0],6)})
             ds_taux_sub = ds_taux.isel({'time_counter':np.arange(0,ds_taux.time_counter.shape[0],6)})
@@ -182,8 +184,8 @@ def load_NEMO(daily_mean=True,lons='default',lats='default',lon_lims='default',w
             tauy = ds_tauy_sub.sometauy.copy()
             for i in np.arange(0,370,1)*6:
                 ind = int(i/6)
-                taux[ind,:,:] = ds_taux.sozotaux[i:i+6,:,:].mean(axis = 0)
-                tauy[ind,:,:] = ds_tauy.sometauy[i:i+6,:,:].mean(axis = 0)
+                taux[ind,:] = ds_taux.sozotaux[i:i+6,:].mean(axis = 0)
+                tauy[ind,:] = ds_tauy.sometauy[i:i+6,:].mean(axis = 0)
             ds_taux_sub['tau_x'] = taux
             ds_tauy_sub['tau_y'] = tauy
             ds_taux = ds_taux_sub
@@ -207,18 +209,13 @@ def load_NEMO(daily_mean=True,lons='default',lats='default',lon_lims='default',w
             ds_taux = ds_taux.isel({'x':ilons})
             ds_tauy = ds_tauy.isel({'x':ilons})
         elif lon_lims != 'default':     
-            ds =ds.sel(x=ds.x[(lon_full > lon_lims[0])&(lon_full < lon_lims[1])])
-
-        if lats != 'default':
-            ilats = np.zeros(lats.shape[0]).astype(int)
-            for il in range(0,lats.shape[0]):
-                ilats[il] = int(np.nanargmin(np.abs(lats[il] - lat_full))) 
-            ds_taux = ds_taux.isel({'y':ilats})
-            ds_tauy = ds_tauy.isel({'y':ilats})
-           
-      
+            ds_taux =ds_taux.sel(x=ds.x[(lon_full > lon_lims[0])&(lon_full < lon_lims[1])])
+            ds_tauy =ds_tauy.sel(x=ds.x[(lon_full > lon_lims[0])&(lon_full < lon_lims[1])])
+            
+        tau_x = ds_taux.tau_x.values
+        tau_y = ds_tauy.tau_y.values
     
-        return t, lat, lon, D, ds, ds_taux, ds_tauy
+        return t, lat, lon, D, ds, tau_x, tau_y
     
     else:
         return  t, lat, lon, D, ds

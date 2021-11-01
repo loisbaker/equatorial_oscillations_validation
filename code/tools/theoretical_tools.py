@@ -238,7 +238,7 @@ def find_predicted_freqs(nmodes,k_wavenumbers=0,lon_lims=[0,360],lat_lims=[-12,1
         # Re-dimensionalise frequency
         freqbc2 = freqbc2_nd/Te2d/2/np.pi
 
-        return freqbc1, freqbc2, c1, c2, lon_freqs, k_wavenumbers
+    return freqbc1, freqbc2, c1, c2, lon_freqs, k_wavenumbers
         
     
     

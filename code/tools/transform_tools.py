@@ -7,7 +7,25 @@ from tqdm import tqdm
 
 
 def least_squares_spectrum_t_multi(data, t, min_period=2, max_period=370, NSR=35, reconstruct_min_period='default'):
+    ''' 
+    Finds least squares fit of temporal modes to time series data when the input field has multiple dimensions (time must be first dimension). Uses least_squares_spectrum_t.
     
+    Inputs:
+    
+    data (np.ndarray): input time series, up to 3 dimensions
+    t (np.ndarray): time vector, length data.shape[0]
+    min_period (float or int, optional): minimum possible period of temporal modes. Defaults to 2.
+    max_period (float or int, optional): maximum period of temporal modes (= length of time series). Defaults to 370.
+    NSR (float or int, optional): Noise to signal ratio
+    reconstruct_min_period (optional): Minimum period with which to reconstruct signal (effectively a low pass filter). Defaults to 'default', which gives no cutoff. 
+    
+    Returns:
+    
+    freqs (np.ndarray): frequencies at which power has been found
+    power (np.ndarray): estimated power at each frequency. Dimensions are [frequency, (latitude), (longitude)]
+    fitted_data (np.ndarray) : reconstructed field, same shape as input data. For a perfect fit, fitted_data = data.
+    
+    '''
     if len(data.shape) == 1:
         return least_squares_spectrum_t(data, t, min_period, max_period, NSR,reconstruct_min_period)
     elif len(data.shape) == 2:
@@ -39,69 +57,111 @@ def least_squares_spectrum_t_multi(data, t, min_period=2, max_period=370, NSR=35
         return freqs, power_3D, fitted_data_3D
         
         
-def least_squares_spectrum_t(data, t, min_period, max_period, NSR=35, reconstruct_min_period='default'):
+def least_squares_spectrum_t(data, t, min_period=2, max_period=370, NSR=35, reconstruct_min_period='default'):
+    ''' 
+    Finds least squares fit of temporal modes to time series data.
     
-    # Data can have shape [nt, ny, nx] or [nt, nx or ny] 
-    freq_min = 0
-    freq_max = 1/min_period
-    delta_freq = 1/max_period
-    freqs = np.arange(freq_min,freq_max,delta_freq)
-
-        
-    # get a copy of the data
-    d = np.squeeze(np.copy(data))
-
-    if np.sum(np.isnan(d)) < d.shape[0]: # If not all nans
-        
-        # Now vectorize if necessary, and remove mean
-        dvec = np.ravel(d)
-        dvec -= np.nanmean(dvec)
-
-        # Remove nans from time and dvec
-        t_rm = t[~np.isnan(dvec)]
-        dvec_rm = dvec[~np.isnan(dvec)]
-
-        nd = dvec_rm.shape[0]
-        nm = 2*freqs.shape[0]
-        E = np.zeros((nd,nm))
-        for m in range(0,int(nm/2)):
-            E[:,2*m] = np.sin(2*pi*freqs[m]*t_rm)
-            E[:,2*m+1] = np.cos(2*pi*freqs[m]*t_rm)
-
-
-        R = np.eye(nm)*NSR
-        Cmm = np.dot(np.transpose(E),E) + R
-        Cmd = np.transpose(E)
-        K = np.dot(np.linalg.inv(Cmm),Cmd)
-        amps = np.dot(K,dvec_rm)
-        
-        # Allow reconstruction from a limited number of modes (for high pass)
-        if reconstruct_min_period != 'default':
-            nm_lim = np.argmin(np.abs(freqs - 1/reconstruct_min_period))+1
-            fitted_d = np.dot(E[:,:2*nm_lim],amps[:2*nm_lim])
-            sine_coeffs = amps[0::2]
-            cos_coeffs = amps[1::2]
-            sine_coeffs[nm_lim:] = 0      
-            cos_coeffs[nm_lim:] = 0
-        else:
-            fitted_d = np.dot(E,amps)
-            sine_coeffs = amps[0::2]
-            cos_coeffs = amps[1::2]
-        power = np.sqrt((sine_coeffs**2 + cos_coeffs**2)) # same definition as Blaker et al. 2021
-
-
-        fitted_data = np.nan*np.ones_like(dvec)
-        fitted_data[~np.isnan(dvec)] = fitted_d
-
+    Inputs:
+    
+    data (np.ndarray): input time series, one dimension
+    t (np.ndarray): time vector, same shape as data
+    min_period (float or int, optional): minimum possible period of temporal modes. Defaults to 2.
+    max_period (float or int, optional): maximum period of temporal modes (= length of time series). Defaults to 370.
+    NSR (float or int, optional): Noise to signal ratio
+    reconstruct_min_period (optional): Minimum period with which to reconstruct signal (effectively a low pass filter). Defaults to 'default', which gives no cutoff. 
+    
+    Returns:
+    
+    freqs (np.ndarray): frequencies at which power has been found
+    power (np.ndarray): estimated power at each frequency
+    fitted_data (np.ndarray) : reconstructed field, same shape as input data. For a perfect fit, fitted_data = data.
+    
+    '''
+    # Data must have one dimension (time)
+    if len(data.shape) > 1:
+        raise TypeError("data must be one dimensional (time) - try using `least_squares_spectrum_t_multi'")
     else:
-        power = np.nan*freqs
-        fitted_data = data
+        
+        freq_min = 0
+        freq_max = 1/min_period
+        delta_freq = 1/max_period
+        freqs = np.arange(freq_min,freq_max,delta_freq)
 
-    return freqs, power, fitted_data
+
+        # get a copy of the data
+        d = np.squeeze(np.copy(data))
+
+        if np.sum(np.isnan(d)) < d.shape[0]: # If not all nans
+
+            # Now vectorize if necessary, and remove mean
+            dvec = np.ravel(d)
+            dvec -= np.nanmean(dvec)
+
+            # Remove nans from time and dvec
+            t_rm = t[~np.isnan(dvec)]
+            dvec_rm = dvec[~np.isnan(dvec)]
+
+            nd = dvec_rm.shape[0]
+            nm = 2*freqs.shape[0]
+            E = np.zeros((nd,nm))
+            for m in range(0,int(nm/2)):
+                E[:,2*m] = np.sin(2*pi*freqs[m]*t_rm)
+                E[:,2*m+1] = np.cos(2*pi*freqs[m]*t_rm)
 
 
-def least_squares_spectrum_t_y(data, t, y, min_period, max_period, y_modes, NSR=35, max_period_cutoff ='default'):
+            R = np.eye(nm)*NSR
+            Cmm = np.dot(np.transpose(E),E) + R
+            Cmd = np.transpose(E)
+            K = np.dot(np.linalg.inv(Cmm),Cmd)
+            amps = np.dot(K,dvec_rm)
+
+            # Allow reconstruction from a limited number of modes (for high pass)
+            if reconstruct_min_period != 'default':
+                nm_lim = np.argmin(np.abs(freqs - 1/reconstruct_min_period))+1
+                fitted_d = np.dot(E[:,:2*nm_lim],amps[:2*nm_lim])
+                sine_coeffs = amps[0::2]
+                cos_coeffs = amps[1::2]
+                sine_coeffs[nm_lim:] = 0      
+                cos_coeffs[nm_lim:] = 0
+            else:
+                fitted_d = np.dot(E,amps)
+                sine_coeffs = amps[0::2]
+                cos_coeffs = amps[1::2]
+            power = np.sqrt((sine_coeffs**2 + cos_coeffs**2)) # same definition as power in Blaker et al. 2021
+
+
+            fitted_data = np.nan*np.ones_like(dvec)
+            fitted_data[~np.isnan(dvec)] = fitted_d
+
+        else:
+            power = np.nan*freqs
+            fitted_data = np.copy(data)
+
+        return freqs, power, fitted_data
+
+
+def least_squares_spectrum_t_y(data, t, y, y_modes, min_period=2, max_period=370, NSR=35, max_period_cutoff ='default'):
+    ''' 
+    Finds least squares fit of temporal and meridional modes to 2D (time, latitude) or 3D (time, latitude, longtiude) fields.
     
+    Inputs:
+    
+    data (np.ndarray): input data, two or three dimensions. Tiem should be first dimension, then latitude, then (optionally) longitude.
+    t (np.ndarray): time vector, length data.shape[0]
+    y (np.ndarray): latitude vector, length data.shape[1]
+    min_period (float or int, optional): minimum possible period of temporal modes. Defaults to 2.
+    max_period (float or int, optional): maximum period of temporal modes (= length of time series). Defaults to 370.
+    y_modes (np.ndarray): meridional modes, first dimension is mode number, second dimension is latitude (length data.shape[1])
+    NSR (float or int, optional): Noise to signal ratio
+    max_period_cutoff (optional): Maximum period to use in frequency fit. Not necessarily equal to max_period, as this should be the maximum possible period.  Defaults to 'default', which gives no cutoff. 
+    
+    Returns:
+    
+    freqs (np.ndarray): frequencies at which power has been found
+    power (np.ndarray): estimated power at each frequency. Dimensions are [frequency, mode number, (longitude)]
+    fitted_data (np.ndarray) : reconstructed field, same shape as input data. For a perfect fit, fitted_data = data. 
+    
+    '''
     # Data should have shape [nt, ny, nx] or [nt, ny]
     
     if max_period_cutoff == 'default':
