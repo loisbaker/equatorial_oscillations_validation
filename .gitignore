@@ -10,4 +10,4 @@ venv/
 *.DS_Store
 .ipynb_checkpoints/
 *Crop_NEMO.ipynb
-*/__pycache__
+__pycache__/
