@@ -8,6 +8,6 @@ data/post_processed
 venv/
 *.zip
 *.DS_Store
-*/.ipynb_checkpoints
+*/.ipynb_checkpoints/
 *Crop_NEMO.ipynb
 */__pycache__
