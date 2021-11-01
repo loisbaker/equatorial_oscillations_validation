@@ -7,3 +7,7 @@ data/baroclinic_wave_speeds/ghc_pr.mat
 data/post_processed
 venv/
 *.zip
+*.DS_Store
+*/ipynb_checkpoints
+*Crop_NEMO.ipynb
+*/__pycache__
