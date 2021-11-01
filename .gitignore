@@ -6,3 +6,4 @@ data/baroclinic_wave_speeds/ghc_pr.mat
 *.png
 data/post_processed
 venv/
+*.zip
