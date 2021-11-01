@@ -1,7 +1,7 @@
 *.dat
 *.nc
 *.cdf
-*.mat
+data/baroclinic_wave_speeds/ghc_pr.mat
 *.ppt
 *.png
 data/post_processed
